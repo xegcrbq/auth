@@ -188,7 +188,10 @@ func (dbC DbCredentials) Refresh(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-
+	if time.Now().Unix() > claims.ExpiresAt {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	//подключение к бд
 	db, err := sqlx.Open("postgres", dbC.dbDataSource())
 	if err != nil {
