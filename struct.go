@@ -48,7 +48,7 @@ func (dbC DbCredentials) dbDataSource() string {
 		dbC.host, dbC.port, dbC.user, dbC.password, dbC.dbname)
 }
 
-func (dbC DbCredentials) dbCreateTables() error {
+func (dbC DbCredentials) DbCreateTables() error {
 	db, err := sqlx.Open("postgres", dbC.dbDataSource())
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func (dbC DbCredentials) dbCreateTables() error {
 	}
 	return nil
 }
-func (dbC DbCredentials) dbCreateUsers() error {
+func (dbC DbCredentials) DbCreateUsers() error {
 	db, err := sqlx.Open("postgres", dbC.dbDataSource())
 	if err != nil {
 		return err

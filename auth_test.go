@@ -25,9 +25,9 @@ func TestDBConnect(t *testing.T) {
 }
 func TestDBCreate(t *testing.T) {
 	dbC := NewDefaultDbCredentials()
-	err := dbC.dbCreateTables()
+	err := dbC.DbCreateTables()
 	if err == nil {
-		dbC.dbCreateUsers()
+		dbC.DbCreateUsers()
 	}
 
 }
