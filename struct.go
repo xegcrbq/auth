@@ -2,9 +2,7 @@ package auth
 
 import (
 	"errors"
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/jmoiron/sqlx"
 	"net/http"
 	"time"
 )
@@ -15,84 +13,11 @@ var jwtKey = []byte("irjgdkngfdkjdkjlbvnjkd")
 //var dbDataSource = fmt.Sprintf("user=%v password=%v dbname=%v sslmode=disable",
 //	"postgres", 1, "postgres")
 
-type DbCredentials struct {
-	host     string
-	port     int64
-	user     string
-	password string
-	dbname   string
-}
-
-func NewDefaultDbCredentials() DbCredentials {
-	return DbCredentials{
-		host:     "ec2-34-243-101-244.eu-west-1.compute.amazonaws.com",
-		port:     5432,
-		user:     "hvbofdxjbkkdgq",
-		password: "ff9c8195d4fa5205036cb92a384e142c9ca7bfbbc5f7639f038b4925bacdfea9",
-		dbname:   "d62omvefcmhpmq",
-	}
-}
-func NewDbCredentials(host string, port int64, user, password, dbname string) DbCredentials {
-	return DbCredentials{
-		host:     host,
-		port:     port,
-		user:     user,
-		password: password,
-		dbname:   dbname,
-	}
-}
-
-func (dbC DbCredentials) dbDataSource() string {
-	return fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s",
-		dbC.host, dbC.port, dbC.user, dbC.password, dbC.dbname)
-}
-
-func (dbC DbCredentials) DbCreateTables() error {
-	db, err := sqlx.Open("postgres", dbC.dbDataSource())
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(`
-	CREATE TABLE users(
-	  "userId" SERIAL PRIMARY KEY ,
-	  "userName" varchar(50) NOT NULL,
-	  "password" varchar(50) NOT NULL
-	);
-	CREATE TABLE refreshSessions(
-		"id" SERIAL PRIMARY KEY,
-		"userId" integer REFERENCES users("userId") ON DELETE CASCADE,
-		"refreshToken" varchar(300) NOT NULL,
-		"ua" character varying(200) NOT NULL, /* user-agent */
-		"fingerprint" varchar(300) NOT NULL,
-		"ip" character varying(15) NOT NULL,
-		"expiresIn" bigint NOT NULL,
-		"createdAt" timestamp with time zone NOT NULL DEFAULT now()
-	);
-`)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (dbC DbCredentials) DbCreateUsers() error {
-	db, err := sqlx.Open("postgres", dbC.dbDataSource())
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(`
-	INSERT INTO users ("userName", "password")
-	VALUES ('admin', 'admin'),
-	('user', 'password');
-`)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 type Data interface {
 	Valid() error
+}
+type dbData interface {
+	get() dbData
 }
 
 // Credentials структура для парсинга данных из json и бд
@@ -102,8 +27,12 @@ type Credentials struct {
 	Username string `json:"username" db:"userName"`
 }
 
+func (c Credentials) get() dbData {
+	return c
+}
+
 type RefreshSession struct {
-	Id          string    `db:"id"`
+	Id          int64     `db:"id"`
 	UserId      string    `db:"userId"`
 	ReToken     string    `db:"refreshToken"`
 	UserAgent   string    `db:"ua"`
@@ -111,6 +40,10 @@ type RefreshSession struct {
 	Ip          string    `db:"ip"`
 	ExpiresIn   int64     `db:"expiresIn"`
 	CreatedAt   time.Time `db:"createdAt"`
+}
+
+func (r RefreshSession) get() dbData {
+	return r
 }
 
 func (c Claims) Valid() error {
