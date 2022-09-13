@@ -21,7 +21,7 @@ func (s *Service) AddRepo(rt repository.RepositoryType, db *sqlx.DB) error {
 	}
 	switch rt {
 	case repository.REFRESHSESSION:
-		s.repositories["RefreshSession"] = repository.NewSessionRepo(db)
+		s.repositories["RefreshSession"] = repository.NewRepo(db)
 		return nil
 	default:
 		return errors.New("[Service.AddRepo] unknown repository type")

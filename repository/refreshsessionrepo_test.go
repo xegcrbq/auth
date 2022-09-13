@@ -1,37 +1,65 @@
 package repository
 
-//
-//import (
-//	"github.com/jmoiron/sqlx"
-//	"github.com/xegcrbq/auth"
-//	"math/rand"
-//	"testing"
-//	"time"
-//)
-//
-//var reToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIiLCJleHAiOjE2NjMwNzI3NzB9.YJIJIZ7Sk5NugdXnxnqrLbCLB8BHFOBwOCavhLnBb9g"
-//
-//func TestAddData(t *testing.T) {
-//	db, err := sqlx.Open("postgres", auth.NewDefaultDbCredentials().dbDataSource())
-//	if err != nil {
-//		t.Errorf("[sqlx.Open] expected nil err, but we got err: %v", err)
-//	}
-//	defer db.Close()
-//	sr := NewSessionRepo(db)
-//	_, err = sr.AddData(RefreshSession{
-//		Id:          int64(rand.Int() % 100000),
-//		UserId:      "1",
-//		ReToken:     reToken,
-//		UserAgent:   "test",
-//		Fingerprint: "fingerprint",
-//		Ip:          "192.168.1.1",
-//		ExpiresIn:   10,
-//		CreatedAt:   time.Now(),
-//	})
-//	if err != nil {
-//		t.Errorf("[AddData] expected nil err, but we got err: %v", err)
-//	}
-//}
+import (
+	"github.com/thanhpk/randstr"
+	"github.com/xegcrbq/auth/model"
+	"github.com/xegcrbq/auth/test"
+	"testing"
+	"time"
+)
+
+var reToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIiLCJleHAiOjE2NjMwNzI3NzB9.YJIJIZ7Sk5NugdXnxnqrLbCLB8BHFOBwOCavhLnBb9g"
+var db = test.Db()
+var refreshsession *RefreshSessionRepo
+
+func TestConnectDB(t *testing.T) {
+	if db == nil {
+		t.Errorf("test db connection failed")
+	}
+	err := db.Ping()
+	if err != nil {
+		t.Errorf("expected nil err, but we got err: %v", err)
+	}
+}
+func TestNewRepo(t *testing.T) {
+	refreshsession = NewRepo(db)
+	if refreshsession == nil {
+		t.Errorf("expected not nil value, but we got nil")
+	}
+}
+func TestCreateCorrect(t *testing.T) {
+	expectedRS := model.RefreshSession{
+		UserId:      1,
+		ReToken:     "TestCreate" + randstr.Hex(6),
+		UserAgent:   "TestCreate",
+		Fingerprint: "TestCreate",
+		Ip:          "TestCreate",
+		ExpiresIn:   time.Now().Add(10 * time.Minute).Unix(),
+		CreatedAt:   time.Now(),
+	}
+	refreshsession = NewRepo(db)
+	m, err := refreshsession.create(expectedRS)
+	if err != nil {
+		t.Errorf("expected nil err, but we got err: %v", err)
+	}
+	var outputRS model.RefreshSession
+	db.Get(&outputRS, `SELECT * FROM refreshsessions WHERE "refreshToken" = $1;`, expectedRS.ReToken)
+	if !outputRS.IsValid() {
+		t.Errorf("not valid created object")
+	}
+	if !(expectedRS.Equal(m.(model.RefreshSession)) && expectedRS.Equal(outputRS)) {
+		t.Errorf("created data not equal expected")
+	}
+	res, err := db.Exec(`DELETE FROM refreshsessions WHERE "refreshToken" = $1;`, expectedRS.ReToken)
+	if err != nil {
+		t.Errorf("expected nil err, but we got err: %v", err)
+	}
+	rAffected, _ := res.RowsAffected()
+	if rAffected != 1 {
+		t.Errorf("expected 1 RowsAffected, but we got: %v", rAffected)
+	}
+}
+
 //func TestGetExistingData(t *testing.T) {
 //	db, err := sqlx.Open("postgres", auth.NewDefaultDbCredentials().dbDataSource())
 //	if err != nil {

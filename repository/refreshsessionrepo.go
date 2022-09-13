@@ -7,17 +7,17 @@ import (
 	"github.com/xegcrbq/auth/task"
 )
 
-type SessionRepo struct {
+type RefreshSessionRepo struct {
 	db *sqlx.DB
 }
 
-func NewSessionRepo(db *sqlx.DB) *SessionRepo {
-	return &SessionRepo{
+func NewRepo(db *sqlx.DB) *RefreshSessionRepo {
+	return &RefreshSessionRepo{
 		db: db,
 	}
 }
 
-func (r *SessionRepo) read(m model.Model) (model.Model, error) {
+func (r *RefreshSessionRepo) read(m model.Model) (model.Model, error) {
 	rs := m.(model.RefreshSession)
 	var outputRS model.RefreshSession
 	r.db.Get(&outputRS, `SELECT * FROM refreshsessions WHERE "refreshToken" = $1;`, rs.ReToken)
@@ -27,7 +27,7 @@ func (r *SessionRepo) read(m model.Model) (model.Model, error) {
 	return nil, errors.New("[SessionRepo.read] model not found")
 }
 
-func (r *SessionRepo) delete(m model.Model) (model.Model, error) {
+func (r *RefreshSessionRepo) delete(m model.Model) (model.Model, error) {
 	rs := m.(model.RefreshSession)
 	outputRS, err := r.read(rs)
 	if err != nil {
@@ -46,7 +46,7 @@ func (r *SessionRepo) delete(m model.Model) (model.Model, error) {
 	}
 	return outputRS, nil
 }
-func (r *SessionRepo) create(m model.Model) (model.Model, error) {
+func (r *RefreshSessionRepo) create(m model.Model) (model.Model, error) {
 	rs := m.(model.RefreshSession)
 	_, err := r.db.Exec(`INSERT INTO refreshSessions ("userId", "refreshToken", "ua", "fingerprint", "ip", "expiresIn", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7);`,
 		rs.UserId, rs.ReToken, rs.UserAgent, rs.Fingerprint, rs.Ip, rs.ExpiresIn, rs.CreatedAt)
@@ -55,7 +55,7 @@ func (r *SessionRepo) create(m model.Model) (model.Model, error) {
 	}
 	return rs, nil
 }
-func (r *SessionRepo) RunTask(t task.Task) (model.Model, error) {
+func (r *RefreshSessionRepo) RunTask(t task.Task) (model.Model, error) {
 	switch t.TaskType {
 	case task.CREATE:
 		return r.create(t.Model)
