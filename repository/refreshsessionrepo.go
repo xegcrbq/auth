@@ -16,6 +16,15 @@ func NewRepo(db *sqlx.DB) *RefreshSessionRepo {
 		db: db,
 	}
 }
+func (r *RefreshSessionRepo) create(m model.Model) (model.Model, error) {
+	rs := m.(model.RefreshSession)
+	_, err := r.db.Exec(`INSERT INTO refreshSessions ("userId", "refreshToken", "ua", "fingerprint", "ip", "expiresIn", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+		rs.UserId, rs.ReToken, rs.UserAgent, rs.Fingerprint, rs.Ip, rs.ExpiresIn, rs.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return rs, nil
+}
 
 func (r *RefreshSessionRepo) read(m model.Model) (model.Model, error) {
 	rs := m.(model.RefreshSession)
@@ -25,6 +34,24 @@ func (r *RefreshSessionRepo) read(m model.Model) (model.Model, error) {
 		return outputRS, nil
 	}
 	return nil, errors.New("[SessionRepo.read] model not found")
+}
+func (r *RefreshSessionRepo) readByRefreshToken(m model.Model) (model.Model, error) {
+	rs := m.(model.RefreshSession)
+	var outputRS model.RefreshSession
+	r.db.Get(&outputRS, `SELECT * FROM refreshsessions WHERE "refreshToken" = $1;`, rs.ReToken)
+	if outputRS.Id != 0 {
+		return outputRS, nil
+	}
+	return nil, errors.New("[SessionRepo.readByRefreshToken] model not found")
+}
+func (r *RefreshSessionRepo) readByUserAgent(m model.Model) ([]model.RefreshSession, error) {
+	rs := m.(model.RefreshSession)
+	var outputRS []model.RefreshSession
+	r.db.Select(&outputRS, `SELECT * FROM refreshsessions WHERE "ua" = $1;`, rs.UserAgent)
+	if len(outputRS) != 0 {
+		return outputRS, nil
+	}
+	return nil, errors.New("[SessionRepo.read] models not found")
 }
 
 func (r *RefreshSessionRepo) delete(m model.Model) (model.Model, error) {
@@ -46,15 +73,7 @@ func (r *RefreshSessionRepo) delete(m model.Model) (model.Model, error) {
 	}
 	return outputRS, nil
 }
-func (r *RefreshSessionRepo) create(m model.Model) (model.Model, error) {
-	rs := m.(model.RefreshSession)
-	_, err := r.db.Exec(`INSERT INTO refreshSessions ("userId", "refreshToken", "ua", "fingerprint", "ip", "expiresIn", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-		rs.UserId, rs.ReToken, rs.UserAgent, rs.Fingerprint, rs.Ip, rs.ExpiresIn, rs.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-	return rs, nil
-}
+
 func (r *RefreshSessionRepo) RunTask(t task.Task) (model.Model, error) {
 	switch t.TaskType {
 	case task.CREATE:

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"github.com/thanhpk/randstr"
 	"github.com/xegcrbq/auth/model"
 	"github.com/xegcrbq/auth/test"
@@ -10,7 +11,7 @@ import (
 
 var reToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIiLCJleHAiOjE2NjMwNzI3NzB9.YJIJIZ7Sk5NugdXnxnqrLbCLB8BHFOBwOCavhLnBb9g"
 var db = test.Db()
-var refreshsession *RefreshSessionRepo
+var refreshsession = NewRepo(db)
 
 func TestConnectDB(t *testing.T) {
 	if db == nil {
@@ -22,7 +23,6 @@ func TestConnectDB(t *testing.T) {
 	}
 }
 func TestNewRepo(t *testing.T) {
-	refreshsession = NewRepo(db)
 	if refreshsession == nil {
 		t.Errorf("expected not nil value, but we got nil")
 	}
@@ -37,7 +37,6 @@ func TestCreateCorrect(t *testing.T) {
 		ExpiresIn:   time.Now().Add(10 * time.Minute).Unix(),
 		CreatedAt:   time.Now(),
 	}
-	refreshsession = NewRepo(db)
 	m, err := refreshsession.create(expectedRS)
 	if err != nil {
 		t.Errorf("expected nil err, but we got err: %v", err)
@@ -59,7 +58,14 @@ func TestCreateCorrect(t *testing.T) {
 		t.Errorf("expected 1 RowsAffected, but we got: %v", rAffected)
 	}
 }
+func TestBase(t *testing.T) {
+	rs := model.RefreshSession{UserAgent: "TestCreate"}
+	var outputRS []model.RefreshSession
+	refreshsession.db.Select(&outputRS, `SELECT * FROM refreshsessions WHERE "ua" = $1;`, rs.UserAgent)
+	fmt.Println(outputRS)
+}
 
+//
 //func TestGetExistingData(t *testing.T) {
 //	db, err := sqlx.Open("postgres", auth.NewDefaultDbCredentials().dbDataSource())
 //	if err != nil {
