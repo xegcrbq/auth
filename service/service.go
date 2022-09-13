@@ -9,7 +9,7 @@ import (
 )
 
 type Service struct {
-	repositories map[string]repository.Repository
+	repositories map[string]model.Repository
 }
 
 func (s *Service) AddRepo(rt repository.RepositoryType, db *sqlx.DB) error {
@@ -17,7 +17,7 @@ func (s *Service) AddRepo(rt repository.RepositoryType, db *sqlx.DB) error {
 		return errors.New("[Service.AddRepo] nil db input")
 	}
 	if s.repositories == nil {
-		s.repositories = make(map[string]repository.Repository)
+		s.repositories = make(map[string]model.Repository)
 	}
 	switch rt {
 	case repository.REFRESHSESSION:

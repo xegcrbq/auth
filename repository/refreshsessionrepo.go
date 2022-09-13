@@ -38,7 +38,7 @@ func (r *RefreshSessionRepo) read(m model.Model) (model.Model, error) {
 func (r *RefreshSessionRepo) readByRefreshToken(m model.Model) (model.Model, error) {
 	rs := m.(model.RefreshSession)
 	var outputRS model.RefreshSession
-	r.db.Get(&outputRS, `SELECT * FROM refreshsessions WHERE "refreshToken" = $1;`, rs.ReToken)
+	r.db.Get(&outputRS, `SELECT * FROM refreshsessions WHERE "refreshToken" = $1;`, rs.GetRefreshToken())
 	if outputRS.Id != 0 {
 		return outputRS, nil
 	}
@@ -47,7 +47,7 @@ func (r *RefreshSessionRepo) readByRefreshToken(m model.Model) (model.Model, err
 func (r *RefreshSessionRepo) readByUserAgent(m model.Model) ([]model.RefreshSession, error) {
 	rs := m.(model.RefreshSession)
 	var outputRS []model.RefreshSession
-	r.db.Select(&outputRS, `SELECT * FROM refreshsessions WHERE "ua" = $1;`, rs.UserAgent)
+	r.db.Select(&outputRS, `SELECT * FROM refreshsessions WHERE "ua" = $1;`, rs.GetUserAgent())
 	if len(outputRS) != 0 {
 		return outputRS, nil
 	}
