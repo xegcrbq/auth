@@ -4,15 +4,17 @@ import (
 	"errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/xegcrbq/auth/model"
-	"github.com/xegcrbq/auth/repository"
-	"github.com/xegcrbq/auth/task"
+	"github.com/xegcrbq/auth/old"
+	"github.com/xegcrbq/auth/old/task"
 )
 
 type Service struct {
-	repositories map[string]model.Repository
+	rsRepo model.RefreshSessionRepository
+	crRepo model.CredentialsRepository
 }
 
-func (s *Service) AddRepo(rt repository.RepositoryType, db *sqlx.DB) error {
+func NewService()
+func (s *Service) AddRepo(rt old.RepositoryType, db *sqlx.DB) error {
 	if db == nil {
 		return errors.New("[Service.AddRepo] nil db input")
 	}
@@ -20,8 +22,8 @@ func (s *Service) AddRepo(rt repository.RepositoryType, db *sqlx.DB) error {
 		s.repositories = make(map[string]model.Repository)
 	}
 	switch rt {
-	case repository.REFRESHSESSION:
-		s.repositories["RefreshSession"] = repository.NewRepo(db)
+	case old.REFRESHSESSION:
+		s.repositories["RefreshSession"] = old.NewRepo(db)
 		return nil
 	default:
 		return errors.New("[Service.AddRepo] unknown repository type")

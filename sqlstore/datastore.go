@@ -49,7 +49,7 @@ func ReadByRefreshToken(ctx context.Context, db SqlxDatabase, refreshToken strin
 	return refreshSessions, err
 }
 
-func SaveRefreshSession(ctx context.Context, db SqlxDatabase, rs *model.RefreshSession) error {
+func Save(ctx context.Context, db SqlxDatabase, rs *model.RefreshSession) error {
 	sql := `INSERT INTO ` + SessionTable + ` (userid, refreshtoken, useragent, fingerprint, ip, expiresin, createdat) VALUES ($1, $2, $3, $4, $5, $6, $7)`
 	_, err := db.ExecContext(ctx, sql, rs.UserId, rs.ReToken, rs.UserAgent, rs.Fingerprint, rs.Ip, rs.ExpiresIn, rs.CreatedAt)
 	return err

@@ -3,7 +3,7 @@ package model
 import "context"
 
 type RefreshSessionRepository interface {
-	SaveRefreshSession(ctx context.Context, rs *RefreshSession) error
+	Save(ctx context.Context, rs *RefreshSession) error
 	ReadByRefreshToken(ctx context.Context, refreshToken string) ([]*RefreshSession, error)
 	DeleteByRefreshToken(ctx context.Context, refreshToken string) error
 }

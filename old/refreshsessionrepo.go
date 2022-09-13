@@ -1,10 +1,10 @@
-package repository
+package old
 
 import (
 	"errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/xegcrbq/auth/model"
-	"github.com/xegcrbq/auth/task"
+	task2 "github.com/xegcrbq/auth/old/task"
 )
 
 type RefreshSessionRepo struct {
@@ -74,13 +74,13 @@ func (r *RefreshSessionRepo) delete(m model.Model) (model.Model, error) {
 	return outputRS, nil
 }
 
-func (r *RefreshSessionRepo) RunTask(t task.Task) (model.Model, error) {
+func (r *RefreshSessionRepo) RunTask(t task2.Task) (model.Model, error) {
 	switch t.TaskType {
-	case task.CREATE:
+	case task2.CREATE:
 		return r.create(t.Model)
-	case task.READ:
+	case task2.READ:
 		return r.read(t.Model)
-	case task.DELETE:
+	case task2.DELETE:
 		return r.delete(t.Model)
 	default:
 		return nil, errors.New("[SessionRepo.RunTask] task not found")

@@ -8,7 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/thanhpk/randstr"
 	"github.com/xegcrbq/auth/model"
-	"github.com/xegcrbq/auth/service"
+	"github.com/xegcrbq/auth/old/service"
 	"net/http"
 	"strings"
 	"time"
