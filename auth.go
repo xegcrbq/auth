@@ -7,6 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/thanhpk/randstr"
+	"github.com/xegcrbq/auth/model"
 	"net/http"
 	"strings"
 	"time"
@@ -15,7 +16,7 @@ import (
 // Signin обработчик авторизации по логину и паролю
 func (dbC DbCredentials) Signin(w http.ResponseWriter, r *http.Request) {
 
-	var creds Credentials
+	var creds model.Credentials
 	err := json.NewDecoder(r.Body).Decode(&creds)
 
 	//проверка корректности парсинга
@@ -38,7 +39,7 @@ func (dbC DbCredentials) Signin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//проверка на наличие логина и пароля в бд
-	var dbCreds []Credentials
+	var dbCreds []model.Credentials
 	err = db.Select(&dbCreds, `SELECT * FROM users WHERE "password" = $1 and "userName" = $2;`, creds.Password, creds.Username)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

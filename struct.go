@@ -16,35 +16,6 @@ var jwtKey = []byte("irjgdkngfdkjdkjlbvnjkd")
 type Data interface {
 	Valid() error
 }
-type dbData interface {
-	get() dbData
-}
-
-// Credentials структура для парсинга данных из json и бд
-type Credentials struct {
-	UserId   string `json:"userId" db:"userId"`
-	Password string `json:"password" db:"password"`
-	Username string `json:"username" db:"userName"`
-}
-
-func (c Credentials) get() dbData {
-	return c
-}
-
-type RefreshSession struct {
-	Id          int64     `db:"id"`
-	UserId      string    `db:"userId"`
-	ReToken     string    `db:"refreshToken"`
-	UserAgent   string    `db:"ua"`
-	Fingerprint string    `db:"fingerprint"`
-	Ip          string    `db:"ip"`
-	ExpiresIn   int64     `db:"expiresIn"`
-	CreatedAt   time.Time `db:"createdAt"`
-}
-
-func (r RefreshSession) get() dbData {
-	return r
-}
 
 func (c Claims) Valid() error {
 	if c == (Claims{}) {

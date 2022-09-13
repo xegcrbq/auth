@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"github.com/xegcrbq/auth/model"
 )
 
 type DbCredentials struct {
@@ -73,8 +74,8 @@ func (dbC DbCredentials) addData(data dbData) error {
 		return err
 	}
 	switch data.(type) {
-	case Credentials:
-		creds := data.(Credentials)
+	case model.Credentials:
+		creds := data.(model.Credentials)
 		_, err = db.Exec(`
 		INSERT INTO users ("userName", "password")
 		VALUES ($1, $2);`,
@@ -95,8 +96,8 @@ func (dbC DbCredentials) removeData(data dbData) error {
 		return err
 	}
 	switch data.(type) {
-	case Credentials:
-		creds := data.(Credentials)
+	case model.Credentials:
+		creds := data.(model.Credentials)
 		_, err = db.Exec(`
 		INSERT INTO users ("userName", "password")
 		VALUES ($1, $2);`,
