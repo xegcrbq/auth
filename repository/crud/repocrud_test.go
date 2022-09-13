@@ -1,4 +1,4 @@
-package repository
+package crud
 
 import (
 	"context"
@@ -10,8 +10,12 @@ import (
 	"time"
 )
 
-func TestNewSqlRefreshSessionRepository(t *testing.T) {
-	rsR := NewSqlRefreshSessionRepository(test.Db())
+func TestDropTables(t *testing.T) {
+	DropTables(test.Db())
+	CreateTables(test.Db())
+}
+
+func TestSaveRefreshSession(t *testing.T) {
 	expectedRS := model.RefreshSession{
 		UserId:      1,
 		ReToken:     "TestCreate" + randstr.Hex(6),
@@ -21,8 +25,8 @@ func TestNewSqlRefreshSessionRepository(t *testing.T) {
 		ExpiresIn:   time.Now().Add(10 * time.Minute).Unix(),
 		CreatedAt:   time.Now(),
 	}
-	rsR.Save(context.Background(), &expectedRS)
-	data, _ := rsR.ReadByRefreshToken(context.Background(), expectedRS.ReToken)
+	Save(context.Background(), test.Db(), &expectedRS)
+	data, _ := ReadByRefreshToken(context.Background(), test.Db(), expectedRS.ReToken)
 	fmt.Println(data[0])
-	rsR.DeleteByRefreshToken(context.Background(), expectedRS.ReToken)
+	DeleteByRefreshToken(context.Background(), test.Db(), expectedRS.ReToken)
 }

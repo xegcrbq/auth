@@ -9,7 +9,7 @@ type RefreshSessionRepository interface {
 }
 
 type CredentialsRepository interface {
-	SaveCredentials(ctx context.Context, rs *Credentials) error
+	Save(ctx context.Context, rs *Credentials) error
 	ReadByUsername(ctx context.Context, username string) ([]*Credentials, error)
 	DeleteByUsername(ctx context.Context, username string) error
 }

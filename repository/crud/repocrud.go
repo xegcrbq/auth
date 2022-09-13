@@ -1,7 +1,6 @@
-package sqlstore
+package crud
 
 import (
-	"context"
 	"database/sql"
 	"github.com/jmoiron/sqlx"
 	"github.com/xegcrbq/auth/model"
@@ -36,26 +35,26 @@ func CreateTables(db *sqlx.DB) {
 }
 
 type SqlxDatabase interface {
-	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	PreparexContext(ctx context.Context, query string) (*sqlx.Stmt, error)
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	Get(dest interface{}, query string, args ...interface{}) error
+	Preparex(query string) (*sqlx.Stmt, error)
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Select(dest interface{}, query string, args ...interface{}) error
 }
 
-func ReadByRefreshToken(ctx context.Context, db SqlxDatabase, refreshToken string) ([]*model.RefreshSession, error) {
+func ReadByRefreshToken(db SqlxDatabase, refreshToken string) ([]*model.RefreshSession, error) {
 	var refreshSessions []*model.RefreshSession
 	sql := `SELECT * FROM ` + SessionTable + ` WHERE refreshtoken=$1`
-	err := db.SelectContext(ctx, &refreshSessions, sql, refreshToken)
+	err := db.Select(&refreshSessions, sql, refreshToken)
 	return refreshSessions, err
 }
 
-func Save(ctx context.Context, db SqlxDatabase, rs *model.RefreshSession) error {
+func Save(db SqlxDatabase, rs *model.RefreshSession) error {
 	sql := `INSERT INTO ` + SessionTable + ` (userid, refreshtoken, useragent, fingerprint, ip, expiresin, createdat) VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := db.ExecContext(ctx, sql, rs.UserId, rs.ReToken, rs.UserAgent, rs.Fingerprint, rs.Ip, rs.ExpiresIn, rs.CreatedAt)
+	_, err := db.Exec(sql, rs.UserId, rs.ReToken, rs.UserAgent, rs.Fingerprint, rs.Ip, rs.ExpiresIn, rs.CreatedAt)
 	return err
 }
-func DeleteByRefreshToken(ctx context.Context, db SqlxDatabase, refreshToken string) error {
+func DeleteByRefreshToken(db SqlxDatabase, refreshToken string) error {
 	sql := `DELETE FROM ` + SessionTable + ` WHERE refreshtoken = $1`
-	_, err := db.ExecContext(ctx, sql, refreshToken)
+	_, err := db.Exec(sql, refreshToken)
 	return err
 }

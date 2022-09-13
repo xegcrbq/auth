@@ -5,7 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/xegcrbq/auth/model"
 	"github.com/xegcrbq/auth/old"
-	"github.com/xegcrbq/auth/old/task"
+	"github.com/xegcrbq/auth/task"
 )
 
 type Service struct {
