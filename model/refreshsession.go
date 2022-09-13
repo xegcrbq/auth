@@ -13,6 +13,54 @@ type RefreshSession struct {
 	CreatedAt   time.Time `db:"createdAt"`
 }
 
+func (r *RefreshSession) SetId(newId int32) {
+	r.Id = newId
+}
+func (r *RefreshSession) SetUserId(newUserId int32) {
+	r.UserId = newUserId
+}
+func (r *RefreshSession) SetRefreshToken(newToken string) {
+	r.ReToken = newToken
+}
+func (r *RefreshSession) SetUserAgent(newUserAgent string) {
+	r.UserAgent = newUserAgent
+}
+func (r *RefreshSession) SetFingerprint(newFingerprint string) {
+	r.Fingerprint = newFingerprint
+}
+func (r *RefreshSession) SetIp(newIp string) {
+	r.Ip = newIp
+}
+func (r *RefreshSession) SetExpiresIn(newExpiresIn int64) {
+	r.ExpiresIn = newExpiresIn
+}
+func (r *RefreshSession) SetCreatedAt(newCreatedAt time.Time) {
+	r.CreatedAt = newCreatedAt
+}
+func (r RefreshSession) GetId() int32 {
+	return r.Id
+}
+func (r RefreshSession) GetUserId() int32 {
+	return r.UserId
+}
+func (r RefreshSession) GetRefreshToken() string {
+	return r.ReToken
+}
+func (r RefreshSession) GetUserAgent() string {
+	return r.UserAgent
+}
+func (r RefreshSession) GetFingerprint() string {
+	return r.Fingerprint
+}
+func (r RefreshSession) GetIp() string {
+	return r.Ip
+}
+func (r RefreshSession) GetExpiresIn() int64 {
+	return r.ExpiresIn
+}
+func (r RefreshSession) GetCreatedAt() time.Time {
+	return r.CreatedAt
+}
 func (r RefreshSession) IsValid() bool {
 	if r.UserId == 0 {
 		return false
@@ -37,26 +85,26 @@ func (r RefreshSession) IsValid() bool {
 	}
 	return true
 }
-func (r1 *RefreshSession) Equal(r2 RefreshSession) bool {
-	if r1.UserId != r2.UserId {
+func (r RefreshSession) Equal(r2 RefreshSession) bool {
+	if r.UserId != r2.UserId {
 		return false
 	}
-	if r1.ReToken != r2.ReToken {
+	if r.ReToken != r2.ReToken {
 		return false
 	}
-	if r1.UserAgent != r2.UserAgent {
+	if r.UserAgent != r2.UserAgent {
 		return false
 	}
-	if r1.Fingerprint != r2.Fingerprint {
+	if r.Fingerprint != r2.Fingerprint {
 		return false
 	}
-	if r1.Ip != r2.Ip {
+	if r.Ip != r2.Ip {
 		return false
 	}
-	if r1.ExpiresIn != r2.ExpiresIn {
+	if r.ExpiresIn != r2.ExpiresIn {
 		return false
 	}
-	if r1.CreatedAt.Round(time.Second).Unix() != r2.CreatedAt.Round(time.Second).Unix() {
+	if r.CreatedAt.Round(time.Second).Unix() != r2.CreatedAt.Round(time.Second).Unix() {
 		return false
 	}
 	return true

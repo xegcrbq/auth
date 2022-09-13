@@ -8,13 +8,18 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/thanhpk/randstr"
 	"github.com/xegcrbq/auth/model"
+	"github.com/xegcrbq/auth/service"
 	"net/http"
 	"strings"
 	"time"
 )
 
+type Auth struct {
+	service service.Service
+}
+
 // Signin обработчик авторизации по логину и паролю
-func (dbC DbCredentials) Signin(w http.ResponseWriter, r *http.Request) {
+func (a Auth) Signin(w http.ResponseWriter, r *http.Request) {
 
 	var creds model.Credentials
 	err := json.NewDecoder(r.Body).Decode(&creds)
@@ -115,7 +120,7 @@ func (dbC DbCredentials) Signin(w http.ResponseWriter, r *http.Request) {
 }
 
 // Welcome авторизация через cookie
-func Welcome(w http.ResponseWriter, r *http.Request) {
+func (a Auth) Welcome(w http.ResponseWriter, r *http.Request) {
 
 	//получаем cookie
 	c, err := r.Cookie("access_token")
@@ -156,7 +161,7 @@ func Welcome(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("Welcome! %v", claims.Username)))
 }
 
-func (dbC DbCredentials) Refresh(w http.ResponseWriter, r *http.Request) {
+func (a Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 	//получаем refresh_token cookie
 	c, err := r.Cookie("refresh_token")
 	if err != nil {
