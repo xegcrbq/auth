@@ -1,24 +1,18 @@
-package auth
+package models
 
 import (
 	"errors"
 	"github.com/dgrijalva/jwt-go"
-	"net/http"
+	"github.com/gofiber/fiber/v2"
 	"time"
 )
-
-// ключ для создания подписи
-var jwtKey = []byte("irjgdkngfdkjdkjlbvnjkd")
-
-//var dbDataSource = fmt.Sprintf("user=%v password=%v dbname=%v sslmode=disable",
-//	"postgres", 1, "postgres")
 
 type Data interface {
 	Valid() error
 }
 
 func (c Claims) Valid() error {
-	if c == (Claims{}) {
+	if c.ExpiresAt < time.Now().Unix() {
 		return errors.New("empty struct")
 	} else {
 		return nil
@@ -31,8 +25,8 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-func (c Fp) Valid() error {
-	if c == (Fp{}) {
+func (f Fp) Valid() error {
+	if f.ExpiresAt < time.Now().Unix() {
 		return errors.New("empty struct")
 	} else {
 		return nil
@@ -45,28 +39,29 @@ type Fp struct {
 	jwt.StandardClaims
 }
 
-func CreateJWT(name string, expirationTime time.Time, httpOnly bool, rawData Data, shortPath bool) (*http.Cookie, error) {
+func CreateJWT(name string, expirationTime time.Time, httpOnly bool, rawData Data, shortPath bool, jwtKey []byte) (*fiber.Cookie, error) {
 
 	data := jwt.NewWithClaims(jwt.SigningMethodHS256, rawData)
 	dataString, err := data.SignedString(jwtKey)
 	if err != nil {
-		return &http.Cookie{}, errors.New("data.SignedString(jwtKey) error")
+		return &fiber.Cookie{}, errors.New("data.SignedString(jwtKey) error")
 	}
 	//выставляем параметр HttpOnly, чтобы получать доступ к этому токену только на странице авторизации
 	if shortPath {
-		return &http.Cookie{
+		return &fiber.Cookie{
 			Name:     name,
 			Value:    dataString,
 			Expires:  expirationTime,
-			HttpOnly: httpOnly,
+			HTTPOnly: httpOnly,
 			Path:     "/",
 		}, nil
 	} else {
-		return &http.Cookie{
+		return &fiber.Cookie{
 			Name:     name,
 			Value:    dataString,
 			Expires:  expirationTime,
-			HttpOnly: httpOnly,
+			HTTPOnly: httpOnly,
+			Path:     "/auth/",
 		}, nil
 	}
 

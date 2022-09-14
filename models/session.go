@@ -1,23 +1,9 @@
-package model
+package models
 
 import "time"
 
-// Credentials структура для данных пользователя
-type Credentials struct {
-	UserId   int32  `json:"userId" db:"userId"`
-	Password string `json:"password" db:"password"`
-	Username string `json:"username" db:"userName"`
-}
-
-func (c Credentials) IsValid() bool {
-	if c.Username != "" && c.Password != "" {
-		return true
-	}
-	return false
-}
-
-// RefreshSession структура для данных сессии
-type RefreshSession struct {
+// Session структура для данных сессии
+type Session struct {
 	Id          int32     `db:"id"`
 	UserId      int32     `db:"userid"`
 	ReToken     string    `db:"refreshtoken"`
@@ -28,7 +14,7 @@ type RefreshSession struct {
 	CreatedAt   time.Time `db:"createdat"`
 }
 
-func (r RefreshSession) IsValid() bool {
+func (r Session) IsValid() bool {
 	if r.UserId == 0 {
 		return false
 	}
@@ -52,7 +38,7 @@ func (r RefreshSession) IsValid() bool {
 	}
 	return true
 }
-func (r RefreshSession) Equal(r2 RefreshSession) bool {
+func (r Session) Equal(r2 Session) bool {
 	if r.UserId != r2.UserId {
 		return false
 	}
@@ -75,4 +61,10 @@ func (r RefreshSession) Equal(r2 RefreshSession) bool {
 		return false
 	}
 	return true
+}
+
+type RefreshSessionRepository interface {
+	SaveSession(rs *Session) error
+	ReadSessionByRefreshToken(refreshToken string) (*Session, error)
+	DeleteSessionByRefreshToken(refreshToken string) error
 }
