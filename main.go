@@ -5,6 +5,7 @@ import (
 	"github.com/xegcrbq/auth/db"
 	"github.com/xegcrbq/auth/repositories"
 	"github.com/xegcrbq/auth/services"
+	"github.com/xegcrbq/auth/tokenizer"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -16,7 +17,7 @@ func main() {
 	ss := services.NewSessionService(sr)
 	cs := services.NewCredentialsService(cr)
 	service := services.NewService(cs, ss)
-	a := controller.NewAuthController(service, []byte("djkhgkjdfgndkjnkdjnvkjkdgkjd"))
+	a := controller.NewAuthController(service, tokenizer.NewTestTokenizer())
 	app := fiber.New()
 
 	app.Get("/auth/:username-:password", a.Signin)

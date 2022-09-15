@@ -8,19 +8,20 @@ import (
 	"github.com/thanhpk/randstr"
 	"github.com/xegcrbq/auth/models"
 	"github.com/xegcrbq/auth/services"
+	"github.com/xegcrbq/auth/tokenizer"
 	"net/http"
 	"time"
 )
 
 type AuthController struct {
 	service *services.Service
-	jwtKey  []byte
+	tknz    *tokenizer.Tokenizer
 }
 
-func NewAuthController(service *services.Service, jwtKey []byte) *AuthController {
+func NewAuthController(service *services.Service, tknz *tokenizer.Tokenizer) *AuthController {
 	return &AuthController{
 		service: service,
-		jwtKey:  jwtKey,
+		tknz:    tknz,
 	}
 }
 
@@ -45,41 +46,20 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 		return nil
 	}
 	//создание accessToken
-	expirationTime := time.Now().Add(time.Minute * 11)
-	claims := &models.Claims{
-		Username: creds.Username,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-	accessTokenCookie, err := models.CreateJWT("access_token", expirationTime, false, claims, true, a.jwtKey)
+	atCookie, err := a.tknz.NewJWTCookie("access_token", creds.Username, time.Now().Add(time.Minute*11))
 	if err != nil {
 		return err
 	}
 
 	//создание fingerprint
-	expirationTime = time.Now().Add(time.Hour * 24 * 365)
-	fp := &models.Fp{
-		Fingerprint: randstr.Hex(16),
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-	fingerprintCookie, err := models.CreateJWT("fingerprint", expirationTime, true, fp, false, a.jwtKey)
+	fingerprint := randstr.Hex(16)
+	fpCookie, err := a.tknz.NewJWTCookieHTTPOnly("fingerprint", fingerprint, time.Now().Add(time.Hour*24*365))
 	if err != nil {
 		return err
 	}
 
 	//создание refreshToken
-	expirationTime = time.Now().Add(time.Hour * 24)
-
-	claims = &models.Claims{
-		Username: creds.Username,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-	refreshTokenCookie, err := models.CreateJWT("refresh_token", expirationTime, true, claims, false, a.jwtKey)
+	rtCookie, err := a.tknz.NewJWTCookieHTTPOnly("refresh_token", creds.Username, time.Now().Add(time.Hour*24))
 	if err != nil {
 		return err
 	}
@@ -87,19 +67,19 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 	//создание записи в бд
 	refreshSession := &models.Session{
 		UserId:      creds.UserId,
-		ReToken:     refreshTokenCookie.Value,
+		ReToken:     rtCookie.Value,
 		UserAgent:   c.Get("User-Agent"),
-		Fingerprint: fp.Fingerprint,
+		Fingerprint: fingerprint,
 		Ip:          c.IP(),
-		ExpiresIn:   expirationTime.Unix(),
+		ExpiresIn:   rtCookie.Expires.Unix(),
 	}
 	answ = a.service.Execute(models.CommandCreateSession{Session: refreshSession})
 	if answ.Err != nil {
 		return err
 	}
-	c.Cookie(accessTokenCookie)
-	c.Cookie(fingerprintCookie)
-	c.Cookie(refreshTokenCookie)
+	c.Cookie(atCookie)
+	c.Cookie(fpCookie)
+	c.Cookie(rtCookie)
 	return nil
 }
 
@@ -107,39 +87,27 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 func (a AuthController) Welcome(c *fiber.Ctx) error {
 	//получаем cookie
 	tokenString := c.Cookies("access_token")
-	//создаём структуру для парсинга в неё данных
-	claims := &models.Claims{}
-	//парсим данные из токена
-	tkn, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return a.jwtKey, nil
-	})
-
+	claims, tkn, err := a.tknz.ParseDataClaims(tokenString)
 	if err != nil {
 		if err == jwt.ErrSignatureInvalid {
 			c.SendStatus(http.StatusUnauthorized)
-			return err
+			return nil
 		}
 		c.SendStatus(http.StatusBadRequest)
-		return err
+		return nil
 	}
 	if !tkn.Valid {
 		c.SendStatus(http.StatusUnauthorized)
-		return err
+		return nil
 	}
-	c.SendString(fmt.Sprintf("Welcome! %v", claims.Username))
+	c.SendString(fmt.Sprintf("Welcome! %v", claims.Data))
 	return nil
 }
 
 func (a AuthController) Refresh(c *fiber.Ctx) error {
 	//получаем refresh_token cookie
 	tokenString := c.Cookies("refresh_token")
-	//создаём структуру для парсинга в неё данных
-	claims := &models.Claims{}
-	//парсим данные из токена
-	tkn, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return a.jwtKey, nil
-	})
-
+	rtClaims, rTkn, err := a.tknz.ParseDataClaims(tokenString)
 	if err != nil {
 		if err == jwt.ErrSignatureInvalid {
 			c.SendStatus(http.StatusUnauthorized)
@@ -148,7 +116,7 @@ func (a AuthController) Refresh(c *fiber.Ctx) error {
 		c.SendStatus(http.StatusBadRequest)
 		return err
 	}
-	if !tkn.Valid {
+	if !rTkn.Valid {
 		c.SendStatus(http.StatusUnauthorized)
 		return err
 	}
@@ -176,38 +144,33 @@ func (a AuthController) Refresh(c *fiber.Ctx) error {
 		c.SendStatus(http.StatusUnauthorized)
 		return err
 	}
-	if session.ExpiresIn != claims.ExpiresAt {
+	if session.ExpiresIn != rtClaims.ExpiresAt {
 		c.SendStatus(http.StatusUnauthorized)
 		return err
 	}
 
 	//если прошлые проверки пройдены читаем куки с fingerprint
-	fTokenString := c.Cookies("fingerprint")
-	fp := &models.Fp{}
-	ftkn, err := jwt.ParseWithClaims(fTokenString, fp, func(token *jwt.Token) (interface{}, error) {
-		return a.jwtKey, nil
-	})
-
+	fpTokenString := c.Cookies("fingerprint")
+	fpClaims, fpTkn, err := a.tknz.ParseDataClaims(fpTokenString)
 	if err != nil {
 		if err == jwt.ErrSignatureInvalid {
 			c.SendStatus(http.StatusUnauthorized)
-			return err
+			return nil
 		}
 		c.SendStatus(http.StatusBadRequest)
-		return err
+		return nil
 	}
-	if !ftkn.Valid {
+	if !fpTkn.Valid {
 		c.SendStatus(http.StatusUnauthorized)
-		return err
+		return nil
 	}
 	//сравниваем Fingerprint из cookies с Fingerprint из базы данных
-	if fp.Fingerprint != session.Fingerprint {
+	if fpClaims.Data != session.Fingerprint {
 		c.SendStatus(http.StatusUnauthorized)
-		return err
+		return nil
 	}
 
 	//все проверки пройдены
-
 	//возвращаем сессию в бд
 	answ = a.service.Execute(models.CommandCreateSession{Session: session})
 	if answ.Err != nil {
@@ -215,18 +178,11 @@ func (a AuthController) Refresh(c *fiber.Ctx) error {
 		return err
 	}
 	//создаем новый access токен
-	expirationTime := time.Now().Add(time.Minute * 11)
-	accessClaims := &models.Claims{
-		Username: claims.Username,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-	accessTokenCookie, err := models.CreateJWT("access_token", expirationTime, false, accessClaims, true, a.jwtKey)
+	atCookie, err := a.tknz.NewJWTCookie("access_token", rtClaims.Data, time.Now().Add(time.Minute*11))
 	if err != nil {
 		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
-	c.Cookie(accessTokenCookie)
+	c.Cookie(atCookie)
 	return nil
 }

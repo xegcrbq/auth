@@ -9,9 +9,11 @@ import (
 	"github.com/xegcrbq/auth/models"
 	"github.com/xegcrbq/auth/repositories"
 	"github.com/xegcrbq/auth/services"
+	"github.com/xegcrbq/auth/tokenizer"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestAuthController(t *testing.T) {
@@ -20,7 +22,9 @@ func TestAuthController(t *testing.T) {
 	ss := services.NewSessionService(sr)
 	cs := services.NewCredentialsService(cr)
 	service := services.NewService(cs, ss)
-	a := NewAuthController(service, []byte("djkhgkjdfgndkjnkdjnvkjkdgkjd"))
+	tknz := tokenizer.NewTestTokenizer()
+	wrongTknz := tokenizer.NewTokenizer([]byte("TestAuthController"))
+	a := NewAuthController(service, tknz)
 	app := fiber.New()
 
 	app.Get("/auth/:username-:password", a.Signin)
@@ -79,51 +83,54 @@ func TestAuthController(t *testing.T) {
 	}
 	t.Log("testing Welcome")
 	{
-
+		correctCookie, _ := tknz.NewJWTCookie("access_token", creds.Username, time.Now().Add(time.Minute))
+		wrongCookie, _ := wrongTknz.NewJWTCookie("access_token", creds.Username, time.Now().Add(time.Minute))
+		damagedCookie, _ := tknz.NewJWTCookie("access_token", creds.Username, time.Now().Add(time.Minute))
+		oldCookie, _ := tknz.NewJWTCookie("access_token", creds.Username, time.Now().Add(-time.Minute))
+		damagedCookie.Value = damagedCookie.Value[:len(damagedCookie.Value)-10]
+		welcomeTests := []struct {
+			cookie       *fiber.Cookie
+			expectedCode int
+			description  string
+		}{
+			{
+				cookie:       correctCookie,
+				expectedCode: http.StatusOK,
+				description:  "correct cookie",
+			},
+			{
+				cookie:       wrongCookie,
+				expectedCode: http.StatusBadRequest,
+				description:  "wrong cookie",
+			},
+			{
+				cookie:       damagedCookie,
+				expectedCode: http.StatusBadRequest,
+				description:  "damaged cookie",
+			},
+			{
+				cookie:       oldCookie,
+				expectedCode: http.StatusBadRequest,
+				description:  "old cookie",
+			},
+		}
+		for _, test := range welcomeTests {
+			t.Logf("\tTest %d:\t%v", testID, test.description)
+			testID++
+			req := httptest.NewRequest("GET", "/", nil)
+			req.AddCookie(fiberToHttpCookie(test.cookie))
+			resp, _ := app.Test(req, 2000)
+			assert.Equal(t, test.expectedCode, resp.StatusCode)
+		}
 	}
 }
-
-//func TestSigninCorrect(t *testing.T) {
-//
-//	reader := strings.NewReader(`{
-//	 "username":"admin",
-//	 "password":"admin"
-//	}`)
-//
-//	req := httptest.NewRequest(http.MethodPost, "/auth/signin", reader)
-//	req.Header.Set("Content-Type", "application/json")
-//	w := httptest.NewRecorder()
-//	sr := repositories.NewSessionRepo(db.ConnectDB())
-//	cr := repositories.NewCredentialsRepo(db.ConnectDB())
-//	ss := services.NewSessionService(sr)
-//	cs := services.NewCredentialsService(cr)
-//	a := NewAuthController(ss, cs, []byte("djkhgkjdfgndkjnkdjnvkjkdgkjd"))
-//	a.Signin(w, req)
-//	if w.Header()["Set-Cookie"] == nil {
-//		t.Errorf("expected Set-Cookie in Header, but we got nil")
-//	}
-//	if len(w.Header()["Set-Cookie"]) != 3 {
-//		t.Errorf("excepted Set-Cookie with len 3, but got %v", len(w.Header()["Set-Cookie"]))
-//	} else {
-//		if strings.Split(w.Header()["Set-Cookie"][0], "=")[0] != "access_token" {
-//			t.Errorf("expected access_token, but we got %v", strings.Split(w.Header()["Set-Cookie"][0], "=")[0])
-//		}
-//		if strings.Split(w.Header()["Set-Cookie"][1], "=")[0] != "fingerprint" {
-//			t.Errorf("expected access_token, but we got %v", strings.Split(w.Header()["Set-Cookie"][1], "=")[0])
-//		}
-//		if strings.Split(w.Header()["Set-Cookie"][2], "=")[0] != "refresh_token" {
-//			t.Errorf("expected access_token, but we got %v", strings.Split(w.Header()["Set-Cookie"][2], "=")[0])
-//		}
-//		//удаляем созданное подлючение
-//		db, err := sqlx.Open("postgres", dbC.dbDataSource())
-//		defer db.Close()
-//		if err != nil {
-//			t.Errorf("[sqlx.Open] expected nil err, but we got err: %v", err)
-//		}
-//		_, err = db.Exec(`DELETE FROM refreshsessions WHERE "refreshToken" = $1;`, strings.Split(strings.Split(w.Header()["Set-Cookie"][2], "=")[1], ";")[0])
-//		if err != nil {
-//			t.Errorf("[sqlx.Exec] expected nil err, but we got err: %v", err)
-//		}
-//	}
-//
-//}
+func fiberToHttpCookie(fc *fiber.Cookie) *http.Cookie {
+	return &http.Cookie{
+		Name:     fc.Name,
+		Value:    fc.Value,
+		Path:     fc.Path,
+		Domain:   fc.Domain,
+		Expires:  fc.Expires,
+		HttpOnly: fc.HTTPOnly,
+	}
+}
