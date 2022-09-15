@@ -18,13 +18,13 @@ func TestCredentialsRepo(t *testing.T) {
 		testID := 0
 		t.Logf("\tTest %d:\tSaveCredentials", testID)
 		{
-			err := cr.SaveCredentials(expectedCreds)
+			err := cr.SaveCredentials(&models.CommandCreateCredentials{Credentials: expectedCreds})
 			assert.Equal(t, nil, err, "expected nil err, but we got: ", err)
 		}
 		testID++
 		t.Logf("\tTest %d:\tReadCredentialsByUsername", testID)
 		{
-			rCreds, err := cr.ReadCredentialsByUsername(expectedCreds.Username)
+			rCreds, err := cr.ReadCredentialsByUsername(&models.QueryReadCredentialsByUsername{Username: expectedCreds.Username})
 			expectedCreds.UserId = rCreds.UserId
 			assert.Equal(t, expectedCreds, rCreds, "read incorrect credentials")
 			assert.Equal(t, nil, err, "expected nil err, but we got: ", err)
@@ -32,7 +32,7 @@ func TestCredentialsRepo(t *testing.T) {
 		testID++
 		t.Logf("\tTest %d:\tDeleteCredentialsByUsername", testID)
 		{
-			err := cr.DeleteCredentialsByUsername(expectedCreds.Username)
+			err := cr.DeleteCredentialsByUsername(&models.CommandDeleteCredentialsByUsername{Username: expectedCreds.Username})
 			assert.Equal(t, nil, err, "expected nil err, but we got: ", err)
 		}
 	}

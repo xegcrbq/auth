@@ -15,29 +15,29 @@ func NewSessionService(sessionRepo *repositories.SessionRepo) *SessionService {
 	}
 }
 
-func (s *SessionService) IsSessionAvailable(refreshToken string) (bool, error) {
-	session, err := s.sessionRepo.ReadSessionByRefreshToken(refreshToken)
+func (s *SessionService) IsSessionAvailable(cmd models.CommandDeleteSessionByRefreshToken) (bool, error) {
+	session, err := s.sessionRepo.ReadSessionByRefreshToken(&models.QueryReadSessionByRefreshToken{RefreshToken: cmd.RefreshToken})
 	if err == nil && session != nil {
 		return true, nil
 	}
 	return false, err
 }
-func (s *SessionService) GetSession(refreshToken string) (*models.Session, error) {
-	session, err := s.sessionRepo.ReadSessionByRefreshToken(refreshToken)
+func (s *SessionService) GetSession(cmd models.QueryReadSessionByRefreshToken) (*models.Session, error) {
+	session, err := s.sessionRepo.ReadSessionByRefreshToken(&cmd)
 	return session, err
 }
-func (s *SessionService) InsertSession(session *models.Session) error {
-	err := s.sessionRepo.SaveSession(session)
+func (s *SessionService) InsertSession(cmd models.CommandCreateSession) error {
+	err := s.sessionRepo.SaveSession(&cmd)
 	return err
 }
-func (s *SessionService) DeleteSession(refreshToken string) error {
-	found, err := s.IsSessionAvailable(refreshToken)
+func (s *SessionService) DeleteSession(cmd models.CommandDeleteSessionByRefreshToken) error {
+	found, err := s.IsSessionAvailable(cmd)
 	if !found {
 		return ErrDataNotFound
 	}
 	if err != nil {
 		return err
 	}
-	err = s.sessionRepo.DeleteSessionByRefreshToken(refreshToken)
+	err = s.sessionRepo.DeleteSessionByRefreshToken(&cmd)
 	return err
 }

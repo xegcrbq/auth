@@ -24,13 +24,13 @@ func TestSessionRepo(t *testing.T) {
 		testID := 0
 		t.Logf("\tTest %d:\tSaveSession", testID)
 		{
-			err := sr.SaveSession(expectedSession)
+			err := sr.SaveSession(&models.CommandCreateSession{Session: expectedSession})
 			assert.Equal(t, nil, err, "expected nil err, but we got: ", err)
 		}
 		testID++
 		t.Logf("\tTest %d:\tReadSessionByRefreshToken", testID)
 		{
-			rSession, err := sr.ReadSessionByRefreshToken(expectedSession.ReToken)
+			rSession, err := sr.ReadSessionByRefreshToken(&models.QueryReadSessionByRefreshToken{RefreshToken: expectedSession.ReToken})
 			expectedSession.Id = rSession.Id
 			expectedSession.CreatedAt = expectedSession.CreatedAt.Round(time.Second).Local()
 			rSession.CreatedAt = rSession.CreatedAt.Round(time.Second).Local()
@@ -40,7 +40,7 @@ func TestSessionRepo(t *testing.T) {
 		testID++
 		t.Logf("\tTest %d:\tDeleteSessionByRefreshToken", testID)
 		{
-			err := sr.DeleteSessionByRefreshToken(expectedSession.ReToken)
+			err := sr.DeleteSessionByRefreshToken(&models.CommandDeleteSessionByRefreshToken{RefreshToken: expectedSession.ReToken})
 			assert.Equal(t, nil, err, "expected nil err, but we got: ", err)
 		}
 	}

@@ -100,17 +100,17 @@ func TestAuthController(t *testing.T) {
 			},
 			{
 				cookie:       wrongCookie,
-				expectedCode: http.StatusBadRequest,
+				expectedCode: http.StatusUnauthorized,
 				description:  "wrong cookie",
 			},
 			{
 				cookie:       damagedCookie,
-				expectedCode: http.StatusBadRequest,
+				expectedCode: http.StatusUnauthorized,
 				description:  "damaged cookie",
 			},
 			{
 				cookie:       oldCookie,
-				expectedCode: http.StatusBadRequest,
+				expectedCode: http.StatusUnauthorized,
 				description:  "old cookie",
 			},
 		}
@@ -122,6 +122,18 @@ func TestAuthController(t *testing.T) {
 			resp, _ := app.Test(req, 2000)
 			assert.Equal(t, test.expectedCode, resp.StatusCode)
 		}
+	}
+	t.Log("testing Refresh")
+	{
+		//refreshTests := []struct {
+		//	refreshCookie     *http.Cookie
+		//	fingerprintCookir *http.Cookie
+		//	expectedCode      int
+		//	description       string
+		//}{
+		//	{},
+		//}
+		//refreshTests
 	}
 }
 func fiberToHttpCookie(fc *fiber.Cookie) *http.Cookie {

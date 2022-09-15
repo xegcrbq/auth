@@ -15,29 +15,29 @@ func NewCredentialsService(credentialsRepo *repositories.CredentialsRepo) *Crede
 	}
 }
 
-func (s *CredentialsService) IsUserAvailable(username string) (bool, error) {
-	session, err := s.credentialsRepo.ReadCredentialsByUsername(username)
+func (s *CredentialsService) IsUserAvailable(cmd models.CommandDeleteCredentialsByUsername) (bool, error) {
+	session, err := s.credentialsRepo.ReadCredentialsByUsername(&models.QueryReadCredentialsByUsername{Username: cmd.Username})
 	if err == nil && session != nil {
 		return true, nil
 	}
 	return false, err
 }
-func (s *CredentialsService) GetCredentials(username string) (*models.Credentials, error) {
-	session, err := s.credentialsRepo.ReadCredentialsByUsername(username)
+func (s *CredentialsService) GetCredentials(cmd models.QueryReadCredentialsByUsername) (*models.Credentials, error) {
+	session, err := s.credentialsRepo.ReadCredentialsByUsername(&cmd)
 	return session, err
 }
-func (s *CredentialsService) InsertCredentials(session *models.Credentials) error {
-	err := s.credentialsRepo.SaveCredentials(session)
+func (s *CredentialsService) InsertCredentials(cmd models.CommandCreateCredentials) error {
+	err := s.credentialsRepo.SaveCredentials(&cmd)
 	return err
 }
-func (s *CredentialsService) DeleteCredentials(username string) error {
-	found, err := s.IsUserAvailable(username)
+func (s *CredentialsService) DeleteCredentials(cmd models.CommandDeleteCredentialsByUsername) error {
+	found, err := s.IsUserAvailable(cmd)
 	if !found {
 		return ErrDataNotFound
 	}
 	if err != nil {
 		return err
 	}
-	err = s.credentialsRepo.DeleteCredentialsByUsername(username)
+	err = s.credentialsRepo.DeleteCredentialsByUsername(&cmd)
 	return err
 }
