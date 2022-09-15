@@ -109,7 +109,6 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 
 // Welcome авторизация через cookie
 func (a AuthController) Welcome(c *fiber.Ctx) error {
-	fmt.Println(c.Cookies("access_token"))
 	//получаем cookie
 	tokenString := c.Cookies("access_token")
 	//создаём структуру для парсинга в неё данных

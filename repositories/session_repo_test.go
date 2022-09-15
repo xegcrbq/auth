@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/thanhpk/randstr"
 	"github.com/xegcrbq/auth/db"
 	"github.com/xegcrbq/auth/models"
@@ -9,23 +9,39 @@ import (
 	"time"
 )
 
-var sr = NewSessionRepo(db.ConnectDB())
-var expectedRS = models.Session{
-	UserId:      1,
-	ReToken:     "TestCRUD" + randstr.Hex(6),
-	UserAgent:   "TestCRUD",
-	Fingerprint: "TestCRUD",
-	Ip:          "TestCRUD",
-	ExpiresIn:   time.Now().Add(10 * time.Minute).Unix(),
-	CreatedAt:   time.Now(),
-}
-
-func TestSessionRepo_SaveSession(t *testing.T) {
-	fmt.Println(sr.SaveSession(&expectedRS))
-}
-func TestSessionRepo_ReadSessionByRefreshToken(t *testing.T) {
-	fmt.Println(sr.ReadSessionByRefreshToken(expectedRS.ReToken))
-}
-func TestSessionRepo_DeleteSessionByRefreshToken(t *testing.T) {
-	fmt.Println(sr.DeleteSessionByRefreshToken(expectedRS.ReToken))
+func TestSessionRepo(t *testing.T) {
+	sr := NewSessionRepo(db.ConnectDB())
+	expectedSession := &models.Session{
+		UserId:      1,
+		ReToken:     "TestCRUD" + randstr.Hex(6),
+		UserAgent:   "TestCRUD",
+		Fingerprint: "TestCRUD",
+		Ip:          "TestCRUD",
+		ExpiresIn:   time.Now().Add(10 * time.Minute).Unix(),
+		CreatedAt:   time.Now(),
+	}
+	{
+		testID := 0
+		t.Logf("\tTest %d:\tSaveSession", testID)
+		{
+			err := sr.SaveSession(expectedSession)
+			assert.Equal(t, nil, err, "expected nil err, but we got: ", err)
+		}
+		testID++
+		t.Logf("\tTest %d:\tReadSessionByRefreshToken", testID)
+		{
+			rSession, err := sr.ReadSessionByRefreshToken(expectedSession.ReToken)
+			expectedSession.Id = rSession.Id
+			expectedSession.CreatedAt = expectedSession.CreatedAt.Round(time.Second).Local()
+			rSession.CreatedAt = rSession.CreatedAt.Round(time.Second).Local()
+			assert.Equal(t, expectedSession, rSession, "read incorrect session")
+			assert.Equal(t, nil, err, "expected nil err, but we got: ", err)
+		}
+		testID++
+		t.Logf("\tTest %d:\tDeleteSessionByRefreshToken", testID)
+		{
+			err := sr.DeleteSessionByRefreshToken(expectedSession.ReToken)
+			assert.Equal(t, nil, err, "expected nil err, but we got: ", err)
+		}
+	}
 }
