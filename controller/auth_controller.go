@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"errors"
+	"database/sql"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
@@ -34,15 +34,15 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 	//подключение к бд
 	answ := a.service.Execute(models.QueryReadCredentialsByUsername{Username: creds.Username})
 	if answ.Err != nil {
-		if answ.Err == services.ErrDataNotFound {
+		if answ.Err == services.ErrDataNotFound || answ.Err == sql.ErrNoRows {
 			c.SendStatus(http.StatusUnauthorized)
+			return nil
 		}
-		c.SendStatus(http.StatusInternalServerError)
 		return answ.Err
 	}
 	if answ.Credentials.Password != creds.Password {
 		c.SendStatus(http.StatusUnauthorized)
-		return errors.New("wrong password")
+		return nil
 	}
 	//создание accessToken
 	expirationTime := time.Now().Add(time.Minute * 11)
@@ -54,7 +54,6 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 	}
 	accessTokenCookie, err := models.CreateJWT("access_token", expirationTime, false, claims, true, a.jwtKey)
 	if err != nil {
-		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
 
@@ -68,7 +67,6 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 	}
 	fingerprintCookie, err := models.CreateJWT("fingerprint", expirationTime, true, fp, false, a.jwtKey)
 	if err != nil {
-		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
 
@@ -83,7 +81,6 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 	}
 	refreshTokenCookie, err := models.CreateJWT("refresh_token", expirationTime, true, claims, false, a.jwtKey)
 	if err != nil {
-		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
 
@@ -98,7 +95,6 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 	}
 	answ = a.service.Execute(models.CommandCreateSession{Session: refreshSession})
 	if answ.Err != nil {
-		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
 	c.Cookie(accessTokenCookie)

@@ -1,18 +1,90 @@
 package controller
 
-//
-//import (
-//	"github.com/jmoiron/sqlx"
-//	"github.com/xegcrbq/auth/db"
-//	"github.com/xegcrbq/auth/repositories"
-//	"github.com/xegcrbq/auth/services"
-//	"net/http"
-//	"net/http/httptest"
-//	"strings"
-//	"testing"
-//)
-//
+import (
+	"fmt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/thanhpk/randstr"
+	"github.com/xegcrbq/auth/db"
+	"github.com/xegcrbq/auth/models"
+	"github.com/xegcrbq/auth/repositories"
+	"github.com/xegcrbq/auth/services"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func TestAuthController(t *testing.T) {
+	sr := repositories.NewSessionRepo(db.ConnectDB())
+	cr := repositories.NewCredentialsRepo(db.ConnectDB())
+	ss := services.NewSessionService(sr)
+	cs := services.NewCredentialsService(cr)
+	service := services.NewService(cs, ss)
+	a := NewAuthController(service, []byte("djkhgkjdfgndkjnkdjnvkjkdgkjd"))
+	app := fiber.New()
+
+	app.Get("/auth/:username-:password", a.Signin)
+	app.Get("/", a.Welcome)
+	app.Get("/auth/refresh", a.Refresh)
+	testID := 0
+	creds := &models.Credentials{
+		Password: "TestAuth",
+		Username: "TestAuth" + randstr.Hex(4),
+	}
+	t.Log("testing SignIn")
+	{
+		service.Execute(models.CommandCreateCredentials{creds})
+		loginTests := []struct {
+			username       string
+			password       string
+			expectedCode   int
+			expectedCookie []string
+			description    string
+		}{
+			{
+				username:     creds.Username,
+				password:     creds.Password,
+				expectedCode: http.StatusOK,
+				expectedCookie: []string{
+					"access_token",
+					"fingerprint",
+					"refresh_token",
+				},
+				description: "correct login",
+			},
+			{
+				username:     creds.Username,
+				password:     randstr.Hex(10),
+				expectedCode: http.StatusUnauthorized,
+				description:  "wrong password",
+			},
+			{
+				username:     randstr.Hex(10),
+				password:     creds.Username,
+				expectedCode: http.StatusUnauthorized,
+				description:  "wrong login",
+			},
+		}
+
+		for _, test := range loginTests {
+			t.Logf("\tTest %d:\t%v", testID, test.description)
+			testID++
+			req := httptest.NewRequest("GET", fmt.Sprintf("/auth/%v-%v", test.username, test.password), nil)
+			resp, _ := app.Test(req, 2000)
+			assert.Equal(t, test.expectedCode, resp.StatusCode)
+			for _, c := range resp.Cookies() {
+				assert.Contains(t, test.expectedCookie, c.Name)
+			}
+		}
+	}
+	t.Log("testing Welcome")
+	{
+
+	}
+}
+
 //func TestSigninCorrect(t *testing.T) {
+//
 //	reader := strings.NewReader(`{
 //	 "username":"admin",
 //	 "password":"admin"

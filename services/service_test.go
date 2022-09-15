@@ -65,7 +65,7 @@ func TestCredentialsRepo(t *testing.T) {
 			assert.Equal(t, models.Answer{Session: expectedSession}, *answer)
 		}
 		testID++
-		t.Logf("\tTest %d:\tCommandDeleteCredentialsByUsername", testID)
+		t.Logf("\tTest %d:\tCommandDeleteSessionByRefreshToken", testID)
 		{
 			answer := service.Execute(models.CommandDeleteSessionByRefreshToken{expectedSession.ReToken})
 			assert.Equal(t, models.Answer{}, *answer)
