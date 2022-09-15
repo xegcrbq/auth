@@ -26,21 +26,18 @@ func (s *CredentialsService) GetCredentials(username string) (*models.Credential
 	session, err := s.credentialsRepo.ReadCredentialsByUsername(username)
 	return session, err
 }
-func (s *CredentialsService) InsertCredentials(session *models.Credentials) (bool, error) {
+func (s *CredentialsService) InsertCredentials(session *models.Credentials) error {
 	err := s.credentialsRepo.SaveCredentials(session)
-	if err != nil {
-		return false, err
-	}
-	return true, err
+	return err
 }
-func (s *CredentialsService) DeleteCredentials(username string) (bool, error) {
+func (s *CredentialsService) DeleteCredentials(username string) error {
 	found, err := s.IsUserAvailable(username)
 	if !found {
-		return false, err
+		return ErrDataNotFound
+	}
+	if err != nil {
+		return err
 	}
 	err = s.credentialsRepo.DeleteCredentialsByUsername(username)
-	if err != nil {
-		return false, err
-	}
-	return true, err
+	return err
 }

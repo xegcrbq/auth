@@ -26,21 +26,18 @@ func (s *SessionService) GetSession(refreshToken string) (*models.Session, error
 	session, err := s.sessionRepo.ReadSessionByRefreshToken(refreshToken)
 	return session, err
 }
-func (s *SessionService) InsertSession(session *models.Session) (bool, error) {
+func (s *SessionService) InsertSession(session *models.Session) error {
 	err := s.sessionRepo.SaveSession(session)
-	if err != nil {
-		return false, err
-	}
-	return true, err
+	return err
 }
-func (s *SessionService) DeleteSession(refreshToken string) (bool, error) {
+func (s *SessionService) DeleteSession(refreshToken string) error {
 	found, err := s.IsSessionAvailable(refreshToken)
 	if !found {
-		return false, err
+		return ErrDataNotFound
+	}
+	if err != nil {
+		return err
 	}
 	err = s.sessionRepo.DeleteSessionByRefreshToken(refreshToken)
-	if err != nil {
-		return false, err
-	}
-	return true, err
+	return err
 }

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
@@ -12,16 +13,14 @@ import (
 )
 
 type AuthController struct {
-	sessionService     *services.SessionService
-	credentialsService *services.CredentialsService
-	jwtKey             []byte
+	service *services.Service
+	jwtKey  []byte
 }
 
-func NewAuthController(sessionService *services.SessionService, credentialsService *services.CredentialsService, jwtKey []byte) *AuthController {
+func NewAuthController(service *services.Service, jwtKey []byte) *AuthController {
 	return &AuthController{
-		sessionService:     sessionService,
-		credentialsService: credentialsService,
-		jwtKey:             jwtKey,
+		service: service,
+		jwtKey:  jwtKey,
 	}
 }
 
@@ -33,10 +32,17 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 		Password: c.Params("password"),
 	}
 	//подключение к бд
-	dbCreds, err := a.credentialsService.GetCredentials(creds.Username)
-	if err != nil {
+	answ := a.service.Execute(models.QueryReadCredentialsByUsername{Username: creds.Username})
+	if answ.Err != nil {
+		if answ.Err == services.ErrDataNotFound {
+			c.SendStatus(http.StatusUnauthorized)
+		}
 		c.SendStatus(http.StatusInternalServerError)
-		return err
+		return answ.Err
+	}
+	if answ.Credentials.Password != creds.Password {
+		c.SendStatus(http.StatusUnauthorized)
+		return errors.New("wrong password")
 	}
 	//создание accessToken
 	expirationTime := time.Now().Add(time.Minute * 11)
@@ -83,15 +89,15 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 
 	//создание записи в бд
 	refreshSession := &models.Session{
-		UserId:      dbCreds.UserId,
+		UserId:      creds.UserId,
 		ReToken:     refreshTokenCookie.Value,
 		UserAgent:   c.Get("User-Agent"),
 		Fingerprint: fp.Fingerprint,
 		Ip:          c.IP(),
 		ExpiresIn:   expirationTime.Unix(),
 	}
-	_, err = a.sessionService.InsertSession(refreshSession)
-	if err != nil {
+	answ = a.service.Execute(models.CommandCreateSession{Session: refreshSession})
+	if answ.Err != nil {
 		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
@@ -153,28 +159,29 @@ func (a AuthController) Refresh(c *fiber.Ctx) error {
 	}
 
 	//проверка на наличие токена в бд
-	dbRefreshSession, err := a.sessionService.GetSession(tokenString)
-	if err != nil {
+	answ := a.service.Execute(models.QueryReadSessionByRefreshToken{RefreshToken: tokenString})
+	if answ.Err != nil {
+		c.SendStatus(http.StatusInternalServerError)
+		return err
+	}
+	session := answ.Session
+	//удаляем из бд сессию с токеном(потом если что вернём, но если не пройдет проверку, то удалится навсегда)
+	answ = a.service.Execute(models.CommandDeleteSessionByRefreshToken{tokenString})
+	if answ.Err != nil {
 		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
 
-	//удаляем из бд сессию с токеном(потом если что вернём, но если не пройдет проверку, то удалится навсегда)
-	_, err = a.sessionService.DeleteSession(tokenString)
-	if err != nil {
-		c.SendStatus(http.StatusInternalServerError)
-		return err
-	}
 	//делаем проверку сессии на соотвестсвие данным из бд
-	if dbRefreshSession.Ip != c.IP() {
+	if session.Ip != c.IP() {
 		c.SendStatus(http.StatusUnauthorized)
 		return err
 	}
-	if dbRefreshSession.UserAgent != c.Get("User-Agent") {
+	if session.UserAgent != c.Get("User-Agent") {
 		c.SendStatus(http.StatusUnauthorized)
 		return err
 	}
-	if dbRefreshSession.ExpiresIn != claims.ExpiresAt {
+	if session.ExpiresIn != claims.ExpiresAt {
 		c.SendStatus(http.StatusUnauthorized)
 		return err
 	}
@@ -199,7 +206,7 @@ func (a AuthController) Refresh(c *fiber.Ctx) error {
 		return err
 	}
 	//сравниваем Fingerprint из cookies с Fingerprint из базы данных
-	if fp.Fingerprint != dbRefreshSession.Fingerprint {
+	if fp.Fingerprint != session.Fingerprint {
 		c.SendStatus(http.StatusUnauthorized)
 		return err
 	}
@@ -207,8 +214,8 @@ func (a AuthController) Refresh(c *fiber.Ctx) error {
 	//все проверки пройдены
 
 	//возвращаем сессию в бд
-	_, err = a.sessionService.InsertSession(dbRefreshSession)
-	if err != nil {
+	answ = a.service.Execute(models.CommandCreateSession{Session: session})
+	if answ.Err != nil {
 		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}

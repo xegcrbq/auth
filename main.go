@@ -15,7 +15,8 @@ func main() {
 	cr := repositories.NewCredentialsRepo(db.ConnectDB())
 	ss := services.NewSessionService(sr)
 	cs := services.NewCredentialsService(cr)
-	a := controller.NewAuthController(ss, cs, []byte("djkhgkjdfgndkjnkdjnvkjkdgkjd"))
+	service := services.NewService(cs, ss)
+	a := controller.NewAuthController(service, []byte("djkhgkjdfgndkjnkdjnvkjkdgkjd"))
 	app := fiber.New()
 
 	app.Get("/auth/:username-:password", a.Signin)

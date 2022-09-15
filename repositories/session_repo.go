@@ -39,3 +39,6 @@ func (sr *SessionRepo) DeleteSessionByRefreshToken(refreshToken string) error {
 	_, err := sr.db.Exec(sql, refreshToken)
 	return err
 }
+func (sr *SessionRepo) GetCommand(comand interface{}) {
+
+}
