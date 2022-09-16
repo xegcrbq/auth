@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	sr := repositories.NewSessionRepo(db.ConnectDB())
+	sr := repositories.NewSessionRepoRedis(db.ConnectRedis())
 	cr := repositories.NewCredentialsRepo(db.ConnectDB())
 	ss := services.NewSessionService(sr)
 	cs := services.NewCredentialsService(cr)

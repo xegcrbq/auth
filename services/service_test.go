@@ -11,11 +11,6 @@ import (
 )
 
 func TestCredentialsRepo(t *testing.T) {
-	sr := repositories.NewSessionRepo(db.ConnectDB())
-	cr := repositories.NewCredentialsRepo(db.ConnectDB())
-	ss := NewSessionService(sr)
-	cs := NewCredentialsService(cr)
-	service := NewService(cs, ss)
 	expectedCreds := &models.Credentials{
 		Username: "TestService" + randstr.Hex(6),
 		Password: "TestService" + randstr.Hex(6),
@@ -29,27 +24,28 @@ func TestCredentialsRepo(t *testing.T) {
 		ExpiresIn:   time.Now().Add(10 * time.Minute).Unix(),
 		CreatedAt:   time.Now(),
 	}
-	{
-		testID := 0
-		t.Logf("\tTest %d:\tCommandCreateCredentials", testID)
+	testID := 0
+	testedRepos := []struct {
+		repository  repositories.SessionRepo
+		description string
+	}{
 		{
-			answer := service.Execute(models.CommandCreateCredentials{Credentials: expectedCreds})
-			assert.Equal(t, models.Answer{}, *answer)
-		}
-		testID++
-		t.Logf("\tTest %d:\tQueryReadCredentialsByUsername", testID)
+			repository:  repositories.NewSessionRepoSQL(db.ConnectDB()),
+			description: "Postgres",
+		},
 		{
-			answer := service.Execute(models.QueryReadCredentialsByUsername{expectedCreds.Username})
-			expectedCreds.UserId = answer.Credentials.UserId
-			assert.Equal(t, models.Answer{Credentials: expectedCreds}, *answer)
-		}
-		testID++
-		t.Logf("\tTest %d:\tCommandDeleteCredentialsByUsername", testID)
-		{
-			answer := service.Execute(models.CommandDeleteCredentialsByUsername{expectedCreds.Username})
-			assert.Equal(t, models.Answer{}, *answer)
-		}
-		testID++
+			repository:  repositories.NewSessionRepoRedis(db.ConnectRedis()),
+			description: "Redis",
+		},
+	}
+
+	for _, test := range testedRepos {
+		t.Logf("Sessions repository(%v) tests", test.description)
+		sr := test.repository
+		cr := repositories.NewCredentialsRepo(db.ConnectDB())
+		ss := NewSessionService(sr)
+		cs := NewCredentialsService(cr)
+		service := NewService(cs, ss)
 		t.Logf("\tTest %d:\tCommandCreateSession", testID)
 		{
 			answer := service.Execute(models.CommandCreateSession{Session: expectedSession})
@@ -70,5 +66,28 @@ func TestCredentialsRepo(t *testing.T) {
 			answer := service.Execute(models.CommandDeleteSessionByRefreshToken{expectedSession.ReToken})
 			assert.Equal(t, models.Answer{}, *answer)
 		}
+		testID++
+		t.Log("Users repositories tests")
+		{
+			t.Logf("\tTest %d:\tCommandCreateCredentials", testID)
+			{
+				answer := service.Execute(models.CommandCreateCredentials{Credentials: expectedCreds})
+				assert.Equal(t, models.Answer{}, *answer)
+			}
+			testID++
+			t.Logf("\tTest %d:\tQueryReadCredentialsByUsername", testID)
+			{
+				answer := service.Execute(models.QueryReadCredentialsByUsername{expectedCreds.Username})
+				expectedCreds.UserId = answer.Credentials.UserId
+				assert.Equal(t, models.Answer{Credentials: expectedCreds}, *answer)
+			}
+			testID++
+			t.Logf("\tTest %d:\tCommandDeleteCredentialsByUsername", testID)
+			{
+				answer := service.Execute(models.CommandDeleteCredentialsByUsername{expectedCreds.Username})
+				assert.Equal(t, models.Answer{}, *answer)
+			}
+		}
 	}
+
 }

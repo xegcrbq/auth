@@ -5,13 +5,13 @@ import "time"
 // Session структура для данных сессии
 type Session struct {
 	Id          int32     `db:"id"`
-	UserId      int32     `db:"userid"`
-	ReToken     string    `db:"refreshtoken"`
-	UserAgent   string    `db:"useragent"`
-	Fingerprint string    `db:"fingerprint"`
-	Ip          string    `db:"ip"`
-	ExpiresIn   int64     `db:"expiresin"`
-	CreatedAt   time.Time `db:"createdat"`
+	UserId      int32     `json:"userid" db:"userid"`
+	ReToken     string    `json:"refreshToken" db:"refreshtoken"`
+	UserAgent   string    `json:"useragent" db:"useragent"`
+	Fingerprint string    `db:"fingerprint" json:"fingerprint"`
+	Ip          string    `db:"ip" json:"ip"`
+	ExpiresIn   int64     `db:"expiresin" json:"expiresIn"`
+	CreatedAt   time.Time `db:"createdat" json:"createdAt"`
 }
 
 func (r Session) IsValid() bool {

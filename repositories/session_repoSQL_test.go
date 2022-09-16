@@ -10,7 +10,7 @@ import (
 )
 
 func TestSessionRepo(t *testing.T) {
-	sr := NewSessionRepo(db.ConnectDB())
+	sr := NewSessionRepoSQL(db.ConnectDB())
 	expectedSession := &models.Session{
 		UserId:      1,
 		ReToken:     "TestCRUD" + randstr.Hex(6),

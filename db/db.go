@@ -1,24 +1,24 @@
 package db
 
 import (
-	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"os"
 )
 
 func ConnectDB() *sqlx.DB {
 	dbDriver := "postgres"
-	host := "ec2-34-243-101-244.eu-west-1.compute.amazonaws.com"
-	port := 5432
-	user := "hvbofdxjbkkdgq"
-	password := "ff9c8195d4fa5205036cb92a384e142c9ca7bfbbc5f7639f038b4925bacdfea9"
-	dbname := "d62omvefcmhpmq"
-	dbDataSource := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s",
-		host, port, user, password, dbname)
-	db, err := sqlx.Open(dbDriver, dbDataSource)
+	db, err := sqlx.Open(dbDriver, os.Getenv("herokuDB1"))
 	if err != nil {
 		panic(err.Error())
 	}
 	return db
+}
+func ConnectRedis() *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     "localhost:49153",
+		Password: "redispw",
+		DB:       0,
+	})
 }
