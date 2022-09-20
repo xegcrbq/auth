@@ -22,12 +22,7 @@ func ConnectDB() *sqlx.DB {
 	}
 	fmt.Println(u.String())
 	dbDriver := "postgres"
-	//dataSource := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-	//	os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_PORT"), os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_DB"))
 	db, err := sqlx.Open(dbDriver, u.String())
-	fmt.Printf("postgres: %v(ping), %v(err)\n", db.Ping(), err)
-	fmt.Println(u.String())
-	//fmt.Println(dataSource)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -39,6 +34,5 @@ func ConnectRedis() *redis.Client {
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
-	fmt.Printf("redis: %v\n", r.Ping().Err())
 	return r
 }
