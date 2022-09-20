@@ -45,7 +45,7 @@ func (t *Tokenizer) NewJWTCookie(name, data string, expirationTime time.Time) (*
 		Expires: expirationTime,
 	}, err
 }
-func (t *Tokenizer) NewJWTCookieHTTPOnly(name, data string, expirationTime time.Time) (*fiber.Cookie, error) {
+func (t *Tokenizer) NewJWTCookieHTTPOnly(name, data, path string, expirationTime time.Time) (*fiber.Cookie, error) {
 	dc := &DataClaims{
 		Data: data,
 		StandardClaims: jwt.StandardClaims{
@@ -58,6 +58,7 @@ func (t *Tokenizer) NewJWTCookieHTTPOnly(name, data string, expirationTime time.
 		Value:    signedToken,
 		Expires:  expirationTime,
 		HTTPOnly: true,
+		Path:     path,
 	}, err
 }
 func (t *Tokenizer) ParseDataClaims(data string) (*DataClaims, *jwt.Token, error) {

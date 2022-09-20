@@ -20,7 +20,6 @@ func ConnectDB() *sqlx.DB {
 		Path:     os.Getenv("POSTGRES_DB"),
 		RawQuery: q.Encode(),
 	}
-	fmt.Println(u.String())
 	dbDriver := "postgres"
 	db, err := sqlx.Open(dbDriver, u.String())
 	if err != nil {

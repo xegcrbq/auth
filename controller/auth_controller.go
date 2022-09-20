@@ -52,14 +52,14 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 
 	//создание fingerprint
 	fingerprint := randstr.Hex(16)
-	fpCookie, err := a.tknz.NewJWTCookieHTTPOnly("fingerprint", fingerprint, time.Now().Add(time.Hour*24*365))
+	fpCookie, err := a.tknz.NewJWTCookieHTTPOnly("fingerprint", fingerprint, "/auth/", time.Now().Add(time.Hour*24*365))
 	if err != nil {
 		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
 
 	//создание refreshToken
-	rtCookie, err := a.tknz.NewJWTCookieHTTPOnly("refresh_token", creds.Username, time.Now().Add(time.Hour*24))
+	rtCookie, err := a.tknz.NewJWTCookieHTTPOnly("refresh_token", creds.Username, "/auth/", time.Now().Add(time.Hour*24))
 	if err != nil {
 		c.SendStatus(http.StatusInternalServerError)
 		return err
