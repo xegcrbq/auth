@@ -26,7 +26,6 @@ func NewAuthController(service *services.Service, tknz *tokenizer.Tokenizer) *Au
 
 // Signin обработчик авторизации по логину и паролю
 func (a AuthController) Signin(c *fiber.Ctx) error {
-
 	creds := &models.Credentials{
 		Username: c.Params("username"),
 		Password: c.Params("password"),
@@ -68,7 +67,7 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 
 	//создание записи в бд
 	refreshSession := &models.Session{
-		UserId:      creds.UserId,
+		UserId:      answ.Credentials.UserId,
 		ReToken:     rtCookie.Value,
 		UserAgent:   c.Get("User-Agent"),
 		Fingerprint: fingerprint,
@@ -77,11 +76,9 @@ func (a AuthController) Signin(c *fiber.Ctx) error {
 	}
 	answ = a.service.Execute(models.CommandCreateSession{Session: refreshSession})
 	if answ.Err != nil {
+		c.SendStatus(http.StatusInternalServerError)
 		return err
 	}
-	c.ClearCookie("access_token")
-	c.ClearCookie("fingerprint")
-	c.ClearCookie("refresh_token")
 	c.Cookie(atCookie)
 	c.Cookie(fpCookie)
 	c.Cookie(rtCookie)

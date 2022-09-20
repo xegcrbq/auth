@@ -1,0 +1,53 @@
+  #/var/run/postgresql:5432 - accepting connections
+version: '3.8'
+services:
+  db:
+    image: postgres:alpine
+    restart: always
+    container_name: db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - '5432:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+  cache:
+    image: redis
+    restart: always
+    container_name: redis
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes:
+      - cache:/data
+  auth:
+    container_name: signin
+    build: .
+    image: terenas/signin
+    depends_on:
+      - db
+      - cache
+    ports:
+      - '8080:8080'
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - DATABASE_HOST=${DB_HOST}
+      - DATABASE_PORT=${DB_PORT}
+      - REDIS_HOST=cache
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    links:
+      - db
+      - cache
+    volumes:
+      - ./:/src
+volumes:
+  db:
+    driver: local
+  cache:
+    driver: local
